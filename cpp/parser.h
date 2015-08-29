@@ -12,6 +12,9 @@ class Parser {
         Parser(Weblogdb& d);
         Parser();
         void parseWeblog(std::string line);
+        int count();
+        bool toDatabase();
+        void toString();
     private:
         std::vector<Weblog> logs;
         Weblogdb database;

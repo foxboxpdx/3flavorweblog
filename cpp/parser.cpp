@@ -19,7 +19,16 @@ Parser::Parser(Weblogdb& d) {
 
 void Parser::parseWeblog(string line) {
     // Hoping pcre can save me here
-    const string pattern =  "(\\S+)\\s(\\S+)\\s(\\S+)\\s\\[(\\d{2}/\\w+/\\d{4}\\:\\d{2}\\:\\d{2}\\:\\d{2}\\s+.+?)\\]\\s\\\"(\\w+\\s\\S+\\s\\w+\\/\\d+\\.\\d+)\\\"\\s(\\d+)\\s(\\d+|-)\\s\\\"(\\S+)\\\"\\s\\\"(.+)\\\"";
+    const string pattern = 
+      "(\\S+)\\s" // IP Address
+      "(\\S+)\\s" // -
+      "(\\S+)\\s" // -
+      "\\[(\\d{2}/\\w+/\\d{4}\\:\\d{2}\\:\\d{2}\\:\\d{2}\\s+.+?)\\]\\s" // Date
+      "\\\"(\\w+\\s\\S+\\s\\w+\\/\\d+\\.\\d+)\\\"\\s" // Request
+      "(\\d+)\\s" // Code
+      "(\\d+)\\s" // Size
+      "\\\"(\\S+)\\\"\\s" // Referer
+      "\\\"(.+)\\\"";  // Agent
     // Prep a Weblog object
     Weblog w;
 
@@ -42,10 +51,39 @@ void Parser::parseWeblog(string line) {
     }
     else {
         cout << "Input string didn't match pattern at all." << endl;
+        return;
     }
 
     // Shove the Weblog into the private logs vector
     logs.push_back(w);
 
     // Done!
+}
+
+int Parser::count() {
+    // Return the count of items in the logs vector
+    return logs.size();
+}
+
+bool Parser::toDatabase() {
+    // Call upon an interator and insert each weblog object into the database
+    if (logs.size() < 1) {
+        return false;
+    }
+
+    for (auto &wl : logs) {
+        database.write(wl);
+    }
+    return true;
+}
+
+void Parser::toString() {
+    // Iterate and print to stdout
+    if (logs.size() < 1) {
+        return;
+    }
+
+    for (auto &wl : logs) {
+        cout << wl << endl;
+    }
 }
