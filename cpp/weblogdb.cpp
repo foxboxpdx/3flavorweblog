@@ -8,10 +8,6 @@
 
 using std::string;
 
-// Declare this here so we can define it down at the bottom after all the
-// class functions.
-static int callback(void *victor, int argc, char **argv, char **azColName);
-
 Weblogdb::Weblogdb(string file) {
     const char *cfile = file.c_str();
     rc = sqlite3_open(cfile, &db);
@@ -37,20 +33,35 @@ void Weblogdb::setDbFile(string file) {
 }
 
 bool Weblogdb::write(Weblog& log) {
-    // This is not particularly safe; find a better way to work out the size here
-    char buffer [65535];
-    sprintf(buffer, "INSERT into weblogs (ipaddr, date, request, code, size, referer, agent) " \
-                    "values (\"%s\", \"%s\", \"%s\", \"%d\", \"%d\", \"%s\", \"%s\");", 
-                    log.ip_addr.c_str(), log.date.c_str(), log.request.c_str(),
-                    log.code, log.size, log.referer.c_str(), log.agent.c_str());
-    //std::cout << buffer << std::endl;
-    rc = sqlite3_exec(db, buffer, NULL, 0, &zErrMsg);
+    // Trying to make this a little safer using prepared statements and binding values
+    sqlite3_stmt* sth;
+
+    // Statement with binding markers
+    string q = "INSERT OR IGNORE INTO weblogs "
+               "(ipaddr, date, request, code, size, referer, agent) "
+               "values ( ? , ? , ? , ? , ? , ? , ? )";
+    rc = sqlite3_prepare_v2(db, q.c_str(), -1, &sth, NULL);
     if (rc != SQLITE_OK) {
-        std::cerr << "SQL error: " << zErrMsg << std::endl;
-        sqlite3_free(zErrMsg);
+        std::cerr << "SQL Error code: " << rc << std::endl;
+        return false;
+    }
+    // Bind stuff
+    sqlite3_bind_text(sth, 1, log.ip_addr.c_str(), 50, SQLITE_STATIC);
+    sqlite3_bind_text(sth, 2, log.date.c_str(),    50, SQLITE_STATIC);
+    sqlite3_bind_text(sth, 3, log.request.c_str(), 1024, SQLITE_STATIC);
+    sqlite3_bind_int( sth, 4, log.code);
+    sqlite3_bind_int( sth, 5, log.size);
+    sqlite3_bind_text(sth, 6, log.referer.c_str(), 1024, SQLITE_STATIC);
+    sqlite3_bind_text(sth, 7, log.agent.c_str(),   512, SQLITE_STATIC);
+
+    // Execute the prepared statement and check for success
+    rc = sqlite3_step(sth);
+    if (rc != SQLITE_DONE) {
+        std::cerr << "SQL error: " << rc << std::endl;
+        sqlite3_finalize(sth);
         return false;
     } else {
-        std::cout << "Created record ok" << std::endl;
+        sqlite3_finalize(sth);
         return true;
     }
 }
@@ -59,32 +70,67 @@ bool Weblogdb::write(Weblog& log) {
 // This function should probably only be called by a program
 // with very strict query checking!
 std::vector<Weblog> Weblogdb::fetch(string query) {
+    // Even using prepared statements this isn't terribly safe,
+    // but it lets us get rid of that callback function BS.
     std::vector<Weblog> logs;
-    std::vector<Weblog>* logptr = &logs;
-    int length = 30 + query.size();
-    char sql[length];
-    sprintf(sql, "SELECT * FROM weblogs where %s", query.c_str());
-    rc = sqlite3_exec(db, sql, callback, (void*)logptr, &zErrMsg);
+    sqlite3_stmt* sth;
+
+    // Prepare select statement
+    string q = "SELECT * FROM weblogs WHERE ?";
+    rc = sqlite3_prepare_v2(db, q.c_str(), -1, &sth, NULL);
     if (rc != SQLITE_OK) {
-        std::cerr << "SQL Error: " << zErrMsg << std::endl;
-        sqlite3_free(zErrMsg);
-    } else {
-        std::cout << "Executed query: " << sql << std::endl;
+        std::cerr << "SQL Error code: " << rc << std::endl;
+        return logs;
+    }
+
+    // Bind
+    sqlite3_bind_text(sth, 1, query.c_str(), -1, SQLITE_STATIC);
+
+    // Execute and iterate
+    while (sqlite3_step(sth) == SQLITE_ROW) {
+        Weblog w;
+        w.ip_addr = reinterpret_cast<const char*>(sqlite3_column_text(sth, 0));
+        w.date = reinterpret_cast<const char*>(sqlite3_column_text(sth, 1));
+        w.request = reinterpret_cast<const char*>(sqlite3_column_text(sth, 2));
+        w.code = sqlite3_column_int(sth, 3);
+        w.size = sqlite3_column_int(sth, 4);
+        w.referer = reinterpret_cast<const char*>(sqlite3_column_text(sth, 5));
+        w.agent = reinterpret_cast<const char*>(sqlite3_column_text(sth, 6));
+        logs.push_back(w);
     }
     return logs;
 }
 
 std::vector<Weblog> Weblogdb::fetch_all(int limit /*= 50*/) {
+    // Using a prepared statement here allows us to forego
+    // the use of a callback function, which is nice.
+    sqlite3_stmt* sth;
     std::vector<Weblog> logs;
-    std::vector<Weblog>* logptr = &logs;
-    char sql [50];
-    sprintf(sql, "SELECT * FROM weblogs limit %d", limit);
-    rc = sqlite3_exec(db, sql, callback, (void*)logptr, &zErrMsg);
+
+    // Prepare select statement
+    string q = "SELECT * FROM weblogs LIMIT ?";
+    rc = sqlite3_prepare_v2(db, q.c_str(), -1, &sth, NULL);
     if (rc != SQLITE_OK) {
-        std::cerr << "SQL error: " << zErrMsg << std::endl;
-        sqlite3_free(zErrMsg);
-    } else {
-        std::cout << "Executed select ok!" << std::endl;
+        std::cerr << "SQL Error code: " << rc << std::endl;
+        return logs;
+    }
+    // Bind the limit to the statement
+    sqlite3_bind_int(sth, 1, limit);
+    
+    // Execute the prepared statement
+    // Note: sqlite3 is kind of dumb in how column_text operates, since
+    // it returns an unsigned char that we must call reinterpret_cast on.
+    // This totes works though, I promise.
+    while (sqlite3_step(sth) == SQLITE_ROW) {
+        Weblog w;
+        w.ip_addr = reinterpret_cast<const char*>(sqlite3_column_text(sth, 0));
+        w.date = reinterpret_cast<const char*>(sqlite3_column_text(sth, 1));
+        w.request = reinterpret_cast<const char*>(sqlite3_column_text(sth, 2));
+        w.code = sqlite3_column_int(sth, 3);
+        w.size = sqlite3_column_int(sth, 4);
+        w.referer = reinterpret_cast<const char*>(sqlite3_column_text(sth, 5));
+        w.agent = reinterpret_cast<const char*>(sqlite3_column_text(sth, 6));
+        logs.push_back(w);
     }
     return logs;
 }
@@ -113,27 +159,5 @@ void Weblogdb::createTables() {
     else {
         std::cout << "Table created ok!" << std::endl;
     }
-}
-
-// This callback function is required for processing SELECT
-// operations in sqlite3.
-static int callback(void *victor, int argc, char **argv, char **azColName) {
-    // Callback is called for every retrieved dataset.
-    // victor should be a pointer to our Weblog vector.
-    // azColName is an array holding the column name.
-    // argv is an arrya holding the value
-    // ipaddr/date/request/code/size/referer/agent
-    //   0     1     2      3    4     5       6
-    std::vector<Weblog>* v = (std::vector<Weblog>*) victor;
-    Weblog w;
-    w.ip_addr = argv[0];
-    w.date = argv[1];
-    w.request = argv[2];
-    w.code = atoi(argv[3]);
-    w.size = atoi(argv[4]);
-    w.referer = argv[5];
-    w.agent = argv[6];
-    v->push_back(w);
-    return 0;
 }
 

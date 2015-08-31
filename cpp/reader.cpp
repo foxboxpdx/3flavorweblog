@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
     if (argc <= 2) {
       cout << "Usage: " << endl << "\t" << argv[0] << " parse <filename>" << endl;
       cout << "\t" << argv[0] << " fetch <num records>" << endl;
+      cout << "\t" << argv[0] << " create table" << endl;
       exit(1);
     }
 
@@ -18,6 +19,7 @@ int main(int argc, char* argv[]) {
     char *command = argv[1];
     string a = "parse";
     string b = "fetch";
+    string c = "create";
     if (a.compare(command) == 0) {
         char *logFile = argv[2];
         Weblogdb foo = Weblogdb("test.db");
@@ -36,6 +38,7 @@ int main(int argc, char* argv[]) {
 
         // Dump to database
         p.toDatabase();
+        cout << "Wrote logs to database." << endl;
     }
     if (b.compare(command) == 0) {
         int count = atoi(argv[2]);
@@ -44,6 +47,11 @@ int main(int argc, char* argv[]) {
         for (auto &wl : logs) {
             cout << wl << endl;
         }
+    }
+    if (c.compare(command) == 0) {
+        Weblogdb foo = Weblogdb("test.db");
+        foo.createTables();
+        cout << "Created tables!" << endl;
     }
 
     // End!
