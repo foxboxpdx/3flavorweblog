@@ -1,6 +1,6 @@
 package WeblogDB;
 
-use DBI;
+use DBI qw(:sql_types);
 
 sub new {
     my $class = shift;
@@ -15,16 +15,24 @@ sub new {
 
 sub write {
     my ($self, $log) = @_;
-    my $query = sprintf "INSERT INTO weblogs (ipaddr, date, request, code, size, referer, agent) " .
-                        "values (\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\")",
-                        $log->ipaddr, $log->date, $log->request, $log->code,
-                        $log->size, $log->referer, $log->agent;
-    $self->{_dbh}->do($query);
+    my $sth = $self->{_dbh}->prepare( "
+            INSERT OR IGNORE INTO weblogs
+            (ipaddr, date, request, code, size, referer, agent)
+            values (?, ?, ?, ?, ?, ?, ?)" );
+    $sth->bind_param(1, $log->ipaddr);
+    $sth->bind_param(2, $log->date);
+    $sth->bind_param(3, $log->request);
+    $sth->bind_param(4, $log->code, SQL_INTEGER);
+    $sth->bind_param(5, $log->size, SQL_INTEGER);
+    $sth->bind_param(6, $log->referer);
+    $sth->bind_param(7, $log->agent);
+    $sth->execute();
 }
 
 sub fetch {
     my ($self, $query) = @_;
     my @logarray;
+    # Replace this gross unsafe thing with prepared statement and bind values
     my $sth = $self->{_dbh}->prepare( "SELECT * FROM weblogs where $query" );
     $sth->execute();
     my $loghashes = $sth->fetchall_arrayref({});
@@ -41,10 +49,9 @@ sub fetch_all {
     my ($self, $limit) = @_;
     $limit = defined($limit) ? $limit : 50;
     my @logarray;
-    my $sth = $self->{_dbh}->prepare( "SELECT * FROM weblogs LIMIT $limit" );
-    $sth->execute();
-    my $loghashes = $sth->fetchall_arrayref({});
-    foreach my $log (keys $loghashes) {
+    my $sth = $self->{_dbh}->prepare( "SELECT * FROM weblogs LIMIT ?" );
+    $sth->execute($limit);
+    while (my $log = $sth->fetchrow_hashref) {
         my $wl = new Weblog($log->{ipaddr}, $log->{date}, $log->{request},
                             $log->{code},   $log->{size}, $log->{referer},
                             $log->{agent});

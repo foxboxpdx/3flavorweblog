@@ -45,7 +45,7 @@ sub parseWeblog {
 
 sub count {
     my ($self) = @_;
-    return length($self->{_logs});
+    return scalar(@{$self->{_logs}});
 }
 
 sub toDatabase {
@@ -54,7 +54,7 @@ sub toDatabase {
         return;
     }
 
-    for my $log ($self->{_logs}) {
+    for my $log (@{$self->{_logs}}) {
         $self->{_database}->write($log);
     }
 }
