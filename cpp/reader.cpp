@@ -5,6 +5,7 @@
 #include "weblogdb.h"
 #include "parser.h"
 
+using namespace LibWeblog;
 using namespace std;
 
 int main(int argc, char* argv[]) {

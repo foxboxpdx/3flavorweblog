@@ -5,6 +5,7 @@
 #include <pcre++.h>
 #include "parser.h"
 
+using namespace LibWeblog;
 using std::string;
 using std::cout;
 using std::endl;
