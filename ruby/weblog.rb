@@ -24,7 +24,7 @@ class Weblog
 
   # Define a way to print this thing
   def to_s
-    KERNEL.sprintf("%-20s %-30s %-40s", @ipaddr, @date, @request)
+    Kernel.sprintf("%-20s %-30s %-40s", @ipaddr, @date, @request)
   end
 
   # Hurt me beat me treat me like a String

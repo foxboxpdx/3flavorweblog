@@ -6,6 +6,7 @@ class WeblogDB
     fail StandardError, 'Filename required' if filename.nil?
     @filename = filename
     @dbh = SQLite3::Database.new @filename
+    @dbh.results_as_hash = true
   end
 
   def filename=(filename)
@@ -14,22 +15,24 @@ class WeblogDB
     # Reinitialize the DB Handle
     @dbh.close unless @dbh.closed?
     @dbh = SQLite3::Database.new @filename
+    @dbh.results_as_hash = true
   end
 
   def write(log)
-    @dbh.execute("INSERT INTO weblogs
+    sth = @dbh.prepare("INSERT OR IGNORE INTO weblogs
                  (ipaddr, date, request, code, size, referer, agent)
-                 VALUES ('?','?','?','?','?','?','?')",
-                 [log.ipaddr, log.date, log.request, log.code, log.size, log.referer, log.agent])
+                 VALUES (?,?,?,?,?,?,?)")
+
+    sth.execute(log.ipaddr, log.date, log.request, log.code.to_i, log.size.to_i, log.referer, log.agent)
   end
 
   def fetch(query)
     logarray = []
     sth = @dbh.prepare("SELECT * FROM weblogs WHERE #{query}")
-    sth.execute do |row|
-      w = Weblog.new(ipaddr: row[:ipaddr], date: row[:date], request: row[:request],
-                     code: row[:code], size: row[:size], referer: row[:referer],
-                     agent: row[:agent])
+    sth.execute.each do |row|
+      w = Weblog.new(ipaddr: row['ipaddr'], date: row['date'], request: row['request'],
+                     code: row['code'], size: row['size'], referer: row['referer'],
+                     agent: row['agent'])
       logarray.push(w)
     end
     logarray
@@ -38,10 +41,10 @@ class WeblogDB
   def fetch_all(limit = 50)
     logarray = []
     sth = @dbh.prepare("SELECT * FROM weblogs LIMIT ?")
-    sth.execute(limit) do |row|
-      w = Weblog.new(ipaddr: row[:ipaddr], date: row[:date], request: row[:request],
-                     code: row[:code], size: row[:size], referer: row[:referer],
-                     agent: row[:agent])
+    sth.execute(limit).each do |row|
+      w = Weblog.new(ipaddr: row['ipaddr'], date: row['date'], request: row['request'],
+                     code: row['code'], size: row['size'], referer: row['referer'],
+                     agent: row['agent'])
       logarray.push(w)
     end
     logarray

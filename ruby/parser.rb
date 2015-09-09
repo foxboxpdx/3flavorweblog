@@ -12,6 +12,10 @@ class Parser
 
   def parse_weblog(line)
     m = WeblogModule::PATTERN.match(line)
+    if m.nil?
+      puts "Line didn't match pattern."
+      return
+    end
     w = Weblog.new(ipaddr: m[1], date: m[4], request: m[5], code: m[6],
                    size: m[7], referer: m[8], agent: m[9])
     @logs.push(w)
