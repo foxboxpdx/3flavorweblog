@@ -1,2 +1,2 @@
 require 'mkmf-rice'
-create_makefile('libweblog')
+create_makefile('LibWeblog')

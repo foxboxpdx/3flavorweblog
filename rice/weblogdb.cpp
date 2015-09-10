@@ -6,7 +6,6 @@
 #include <sqlite3.h>
 #include "weblogdb.h"
 
-using namespace LibWeblog;
 using std::string;
 
 Weblogdb::Weblogdb(string file) {
