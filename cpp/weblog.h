@@ -2,6 +2,8 @@
 // Declaration of struct
 #include <string>
 #include <vector>
+#include <iomanip>
+#include <sstream>
 
 #ifndef WEBLOG_H
 #define WEBLOG_H
@@ -16,9 +18,11 @@ namespace LibWeblog {
         std::string agent;
 
         friend std::ostream& operator<<(std::ostream& os, const Weblog& w) {
-            char buffer [1024];
-            sprintf (buffer, "%-20s %-30s %-40s", w.ip_addr.c_str(), w.date.c_str(), w.request.c_str());
-            return os << buffer;
+            std::ostringstream foo;
+            foo << std::setw(20) << std::setfill(' ') << std::left << w.ip_addr;
+            foo << std::setw(30) << std::setfill(' ') << std::left << w.date;
+            foo << std::setw(40) << std::setfill(' ') << std::left << w.request;
+            return os << foo.str();
         }
 
         friend std::istream& operator>>(std::istream& is, Weblog& ww) {
