@@ -5,3 +5,4 @@ authors = ["foxboxpdx@gmail.com"]
 
 [dependencies]
 regex = "0.1"
+rusqlite = "0.6"

@@ -2,13 +2,13 @@ use std::fmt;
 
 // Define a weblog struct
 pub struct Weblog {
-    ip: String,
-    date: String,
-    req: String,
-    code: i32,
-    size: i32,
-    referer: String,
-    agent: String,
+    pub ip: String,
+    pub date: String,
+    pub req: String,
+    pub code: i32,
+    pub size: i32,
+    pub referer: String,
+    pub agent: String,
 }
 
 impl Weblog {

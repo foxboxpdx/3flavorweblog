@@ -5,6 +5,7 @@ mod tests {
     }
 }
 extern crate regex;
+extern crate rusqlite;
 
 pub mod weblog;
 pub mod parser;
