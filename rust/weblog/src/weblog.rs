@@ -1,6 +1,7 @@
 use std::fmt;
 
 // Define a weblog struct
+#[derive(Debug)]
 pub struct Weblog {
     pub ip: String,
     pub date: String,

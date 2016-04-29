@@ -9,5 +9,4 @@ extern crate rusqlite;
 
 pub mod weblog;
 pub mod parser;
-pub mod reader;
 pub mod weblogdb;
