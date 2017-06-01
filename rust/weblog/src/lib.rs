@@ -4,6 +4,8 @@ mod tests {
     fn it_works() {
     }
 }
+
+#[macro_use] extern crate lazy_static;
 extern crate regex;
 extern crate rusqlite;
 
