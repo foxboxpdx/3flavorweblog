@@ -1,6 +1,6 @@
-name: weblog
+name: Weblog Parser
 version: "0.2.0"
-author: D. Fox <foxboxpdx@gmail.com>
+author: FoxBox <foxboxpdx@gmail.com>
 about: Parse Apache extended logs and put them in a sqlite database
 subcommands:
   - parse:
@@ -8,16 +8,28 @@ subcommands:
       args:
         - filename:
             short: f
+            long: filename
+            value_name: FILE
+            takes_value: true
+            required: true
             help: File to process
   - fetch:
       about: Fetch records from database
       args:
         - count:
             short: c
+            long: count
+            value_name: COUNT
+            takes_value: true
+            required: true
             help: Number of records to fetch
   - manage:
       about: Manage the underlying sqlite database
       args:
         - action:
             short: a
+            long: action
+            value_name: ACTION
+            takes_value: true
+            required: true
             help: Action to perform - Create, Destroy, or Status

@@ -103,10 +103,46 @@ pub fn create_table() -> bool {
                   referer varchar(255) not null,
                   agent varchar(255) not null,
                   primary key (ipaddr, date))", &[]) {
-        Ok(_) => true,
+        Ok(_) => {
+            println!("Created table 'weblogs'.");
+            true
+        },
         Err(e) => {
             println!("Error creating table: {}", e);
             false
         }
     }
+}
+
+// Connect to the database and drop the weblogs table
+pub fn drop_table() -> bool {
+    let conn = Connection::open("test.db").expect("Cannot open database?");
+
+    match conn.execute("DROP TABLE weblogs", &[]) {
+        Ok(_) => {
+            println!("Dropped table 'weblogs'.");
+            true
+        },
+        Err(e) => {
+            println!("Error dropping table: {}", e);
+            false
+        }
+    }
+}
+
+// Check the status of the database
+pub fn db_status() -> bool {
+    let conn = Connection::open("test.db").expect("Cannot open database?");
+
+    // Just grab a count from the weblogs table
+    match conn.query_row::<i32, _>("SELECT COUNT(*) FROM weblogs", &[], |row| { row.get(0) }) {
+        Ok(x) => {
+            println!("Database OK!  Found {} rows in weblogs table", x);
+            return true;
+        },
+        Err(e) => {
+            println!("Error checking status: {}", e);
+            return false;
+        }
+    };
 }
