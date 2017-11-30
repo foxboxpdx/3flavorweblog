@@ -1,0 +1,23 @@
+name: weblog
+version: "0.2.0"
+author: D. Fox <foxboxpdx@gmail.com>
+about: Parse Apache extended logs and put them in a sqlite database
+subcommands:
+  - parse:
+      about: Parse a log file
+      args:
+        - filename:
+            short: f
+            help: File to process
+  - fetch:
+      about: Fetch records from database
+      args:
+        - count:
+            short: c
+            help: Number of records to fetch
+  - manage:
+      about: Manage the underlying sqlite database
+      args:
+        - action:
+            short: a
+            help: Action to perform - Create, Destroy, or Status
